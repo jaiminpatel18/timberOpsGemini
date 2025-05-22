@@ -1,9 +1,13 @@
+
 export interface WorkLogEntry {
   id: string;
   date: string; // ISO string YYYY-MM-DD
   typeOfWork: string;
-  quantity: number;
-  unit: 'cubic meters' | 'tons' | 'units' | 'tasks';
+  length?: number; // Length in inches
+  width?: number; // Width in inches
+  thickness?: number; // Thickness in inches
+  quantity: number; // Number of pieces
+  unit: string; // Stores calculated value like "12.34 BF" or descriptive unit like "tasks"
   notes?: string;
 }
 

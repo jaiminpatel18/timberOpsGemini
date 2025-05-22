@@ -9,7 +9,7 @@ import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import type { WorkLogEntry } from '@/types';
 import { format } from 'date-fns';
-import { Edit2, Trash2, PlusCircle } from 'lucide-react';
+import { Edit2, Trash2, PlusCircle, Image as ImageIcon } from 'lucide-react';
 
 // Mock data for recent entries
 const initialRecentEntries: WorkLogEntry[] = [
@@ -17,28 +17,32 @@ const initialRecentEntries: WorkLogEntry[] = [
     id: '1', 
     date: '2024-07-21', 
     typeOfWork: 'Pine Cutting', 
-    length: 144, // inches
-    width: 12,  // inches
-    thickness: 1, // inches
-    quantity: 10, // pieces
-    unit: '120.00 BF', // (144 * 12 * 1 * 10) / 144 = 120
-    notes: 'Morning shift, premium grade' 
+    length: 144, 
+    width: 12,  
+    thickness: 1, 
+    quantity: 10, 
+    unit: '120.00 BF', 
+    notes: 'Morning shift, premium grade',
+    photoFileName: 'pine_logs_jul21.jpg',
+    photoUrl: 'https://placehold.co/100x100.png', // Placeholder for actual image URL
   },
   { 
     id: '2', 
     date: '2024-07-21', 
     typeOfWork: 'Oak Loading', 
-    quantity: 2, // Assuming this refers to 2 loads or similar
-    unit: 'loads', // Manually entered unit
+    quantity: 2, 
+    unit: 'loads', 
     notes: 'Afternoon delivery to Smith Co.' 
   },
   { 
     id: '3', 
     date: '2024-07-20', 
     typeOfWork: 'Equipment Maintenance', 
-    quantity: 3, // tasks completed
+    quantity: 3, 
     unit: 'tasks', 
-    notes: 'Saws A1, A2, B1 serviced' 
+    notes: 'Saws A1, A2, B1 serviced',
+    photoFileName: 'maintenance_checklist.png',
+    photoUrl: 'https://placehold.co/100x100.png',
   },
     { 
     id: '4', 
@@ -48,7 +52,7 @@ const initialRecentEntries: WorkLogEntry[] = [
     width: 8,  
     thickness: 1.5, 
     quantity: 50, 
-    unit: '400.00 BF', // (96 * 8 * 1.5 * 50) / 144 = 400
+    unit: '400.00 BF', 
     notes: 'For custom order #C123' 
   },
 ];
@@ -63,11 +67,10 @@ export default function WorkLogPage() {
       setRecentEntries(recentEntries.map(e => e.id === entry.id ? entry : e));
       setEditingEntry(undefined);
     } else {
-      // Ensure new entries get a unique ID if not provided by form (though form should handle it)
       const newEntryWithId = { ...entry, id: entry.id || `new-${Date.now()}`};
       setRecentEntries([newEntryWithId, ...recentEntries]);
     }
-    setIsFormVisible(false); // Hide form after submit
+    setIsFormVisible(false); 
   };
 
   const handleEdit = (entry: WorkLogEntry) => {
@@ -81,12 +84,8 @@ export default function WorkLogPage() {
 
   const toggleFormVisibility = () => {
     setIsFormVisible(!isFormVisible);
-    if (isFormVisible && editingEntry) { // If form was visible and we are cancelling an edit
+    if (isFormVisible && editingEntry) { 
         setEditingEntry(undefined);
-    } else if (!isFormVisible && editingEntry) { // If form was hidden but an edit was active (e.g. user submitted)
-        // This case should be handled by handleFormSubmit clearing editingEntry
-    } else if (isFormVisible && !editingEntry) { // If form was visible for new entry and cancelling
-        // No specific action needed beyond toggling visibility
     }
   };
 
@@ -125,6 +124,7 @@ export default function WorkLogPage() {
                     <TableHead className="text-right">T (in)</TableHead>
                     <TableHead className="text-right">Pieces</TableHead>
                     <TableHead>Unit</TableHead>
+                    <TableHead>Photo</TableHead>
                     <TableHead>Notes</TableHead>
                     <TableHead className="text-right">Actions</TableHead>
                   </TableRow>
@@ -139,6 +139,16 @@ export default function WorkLogPage() {
                       <TableCell className="text-right">{entry.thickness ?? '-'}</TableCell>
                       <TableCell className="text-right">{entry.quantity}</TableCell>
                       <TableCell>{entry.unit}</TableCell>
+                      <TableCell>
+                        {entry.photoFileName ? (
+                          <div className="flex items-center gap-1 text-xs text-muted-foreground" title={entry.photoFileName}>
+                            <ImageIcon className="h-4 w-4" />
+                            <span className="truncate max-w-[80px]">{entry.photoFileName}</span>
+                          </div>
+                        ) : (
+                          '-'
+                        )}
+                      </TableCell>
                       <TableCell className="max-w-[150px] truncate">{entry.notes || '-'}</TableCell>
                       <TableCell className="text-right space-x-1">
                         <Button variant="ghost" size="icon" onClick={() => handleEdit(entry)} aria-label="Edit log">

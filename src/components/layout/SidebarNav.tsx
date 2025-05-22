@@ -1,3 +1,4 @@
+
 "use client";
 
 import Link from 'next/link';
@@ -16,23 +17,33 @@ import {
   SidebarMenuButton,
   SidebarHeader,
   SidebarFooter,
-  SidebarMenuSkeleton,
 } from '@/components/ui/sidebar';
 import { cn } from '@/lib/utils';
-import { Separator } from '@/components/ui/separator';
 import { Badge } from '@/components/ui/badge';
+import type { UserRole } from '@/types';
+import { getCurrentUserRole } from '@/types'; // Import the role checker
+import { useEffect, useState } from 'react';
 
-const navItems = [
-  { href: '/admin/dashboard', label: 'Dashboard', icon: LayoutDashboard },
-  { href: '/admin/work-log', label: 'Work Log', icon: ClipboardEdit, badge: 'New' },
-  { href: '/admin/attendance', label: 'Attendance', icon: Users },
-  { href: '/admin/reports', label: 'Reports', icon: BarChart3 },
+
+const allNavItems = [
+  { href: '/admin/dashboard', label: 'Dashboard', icon: LayoutDashboard, roles: ['Admin', 'Manager', 'Worker'] as UserRole[] },
+  { href: '/admin/work-log', label: 'Work Log', icon: ClipboardEdit, badge: 'New', roles: ['Admin', 'Manager', 'Worker'] as UserRole[] },
+  { href: '/admin/attendance', label: 'Attendance', icon: Users, roles: ['Admin', 'Manager'] as UserRole[] },
+  { href: '/admin/reports', label: 'Reports', icon: BarChart3, roles: ['Admin', 'Manager'] as UserRole[] },
 ];
 
-const settingsItem = { href: '/admin/settings', label: 'Settings', icon: Settings };
+const settingsItem = { href: '/admin/settings', label: 'Settings', icon: Settings, roles: ['Admin'] as UserRole[] };
 
 export function SidebarNav() {
   const pathname = usePathname();
+  const [currentUserRole, setCurrentUserRole] = useState<UserRole>('Worker');
+
+  useEffect(() => {
+    setCurrentUserRole(getCurrentUserRole());
+  }, []);
+
+  const visibleNavItems = allNavItems.filter(item => item.roles.includes(currentUserRole));
+  const canViewSettings = settingsItem.roles.includes(currentUserRole);
 
   return (
     <>
@@ -44,7 +55,7 @@ export function SidebarNav() {
       </SidebarHeader>
 
       <SidebarMenu className="flex-1 p-2">
-        {navItems.map((item) => (
+        {visibleNavItems.map((item) => (
           <SidebarMenuItem key={item.href}>
             <SidebarMenuButton
               asChild
@@ -69,30 +80,32 @@ export function SidebarNav() {
         ))}
       </SidebarMenu>
       
-      <SidebarFooter className="p-2 border-t border-sidebar-border">
-        <SidebarMenu>
-          <SidebarMenuItem>
-            <SidebarMenuButton
-              asChild
-              variant="default"
-              size="default"
-              isActive={pathname.startsWith(settingsItem.href)}
-              tooltip={{ children: settingsItem.label, className: "bg-primary text-primary-foreground" }}
-              className={cn(
-                "justify-start",
-                pathname.startsWith(settingsItem.href)
-                ? "bg-sidebar-primary text-sidebar-primary-foreground hover:bg-sidebar-primary/90"
-                : "text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
-              )}
-            >
-              <Link href={settingsItem.href}>
-                <settingsItem.icon className="h-5 w-5" />
-                <span className="group-data-[collapsible=icon]:hidden">{settingsItem.label}</span>
-              </Link>
-            </SidebarMenuButton>
-          </SidebarMenuItem>
-        </SidebarMenu>
-      </SidebarFooter>
+      {canViewSettings && (
+        <SidebarFooter className="p-2 border-t border-sidebar-border">
+          <SidebarMenu>
+            <SidebarMenuItem>
+              <SidebarMenuButton
+                asChild
+                variant="default"
+                size="default"
+                isActive={pathname.startsWith(settingsItem.href)}
+                tooltip={{ children: settingsItem.label, className: "bg-primary text-primary-foreground" }}
+                className={cn(
+                  "justify-start",
+                  pathname.startsWith(settingsItem.href)
+                  ? "bg-sidebar-primary text-sidebar-primary-foreground hover:bg-sidebar-primary/90"
+                  : "text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
+                )}
+              >
+                <Link href={settingsItem.href}>
+                  <settingsItem.icon className="h-5 w-5" />
+                  <span className="group-data-[collapsible=icon]:hidden">{settingsItem.label}</span>
+                </Link>
+              </SidebarMenuButton>
+            </SidebarMenuItem>
+          </SidebarMenu>
+        </SidebarFooter>
+      )}
     </>
   );
 }

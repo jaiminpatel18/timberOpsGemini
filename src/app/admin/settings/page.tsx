@@ -1,6 +1,7 @@
+
 "use client";
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -8,8 +9,8 @@ import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
 import { useToast } from '@/hooks/use-toast';
 import { UserPlus, UploadCloud, BellRing, Save } from 'lucide-react';
-import type { Employee } from '@/types';
-import { mockEmployees } from '@/types';
+import type { Employee, UserRole } from '@/types';
+import { mockEmployees, getCurrentUserRole } from '@/types';
 import {
   Table,
   TableBody,
@@ -27,12 +28,25 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+
 
 export default function SettingsPage() {
   const { toast } = useToast();
   const [users, setUsers] = useState<Employee[]>(mockEmployees);
   const [newUserName, setNewUserName] = useState('');
-  const [newUserRole, setNewUserRole] = useState<'Worker' | 'Admin'>('Worker');
+  const [newUserRole, setNewUserRole] = useState<UserRole>('Worker');
+  const [currentUserRole, setCurrentUserRole] = useState<UserRole>('Worker');
+
+  useEffect(() => {
+    setCurrentUserRole(getCurrentUserRole());
+  }, []);
 
   const [notifications, setNotifications] = useState({
     dailySummary: true,
@@ -52,6 +66,7 @@ export default function SettingsPage() {
     };
     setUsers([...users, newUser]);
     setNewUserName('');
+    setNewUserRole('Worker'); // Reset to default
     toast({ title: 'User Added', description: `${newUserName} has been added.` });
   };
   
@@ -76,73 +91,76 @@ export default function SettingsPage() {
         <p className="text-muted-foreground">Manage application settings and user preferences.</p>
       </div>
 
-      <Card className="shadow-lg">
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2"><UserPlus /> User Management</CardTitle>
-          <CardDescription>Add or remove workers and manage roles.</CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <Dialog>
-            <DialogTrigger asChild>
-              <Button><UserPlus className="mr-2 h-4 w-4" /> Add New User</Button>
-            </DialogTrigger>
-            <DialogContent className="sm:max-w-[425px]">
-              <DialogHeader>
-                <DialogTitle>Add New User</DialogTitle>
-                <DialogDescription>Enter the details for the new user.</DialogDescription>
-              </DialogHeader>
-              <div className="grid gap-4 py-4">
-                <div className="grid grid-cols-4 items-center gap-4">
-                  <Label htmlFor="name" className="text-right">Name</Label>
-                  <Input id="name" value={newUserName} onChange={(e) => setNewUserName(e.target.value)} className="col-span-3" />
+      {currentUserRole === 'Admin' && (
+        <Card className="shadow-lg">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2"><UserPlus /> User Management</CardTitle>
+            <CardDescription>Add or remove workers and manage roles. (Admin Only)</CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <Dialog>
+              <DialogTrigger asChild>
+                <Button><UserPlus className="mr-2 h-4 w-4" /> Add New User</Button>
+              </DialogTrigger>
+              <DialogContent className="sm:max-w-[425px]">
+                <DialogHeader>
+                  <DialogTitle>Add New User</DialogTitle>
+                  <DialogDescription>Enter the details for the new user.</DialogDescription>
+                </DialogHeader>
+                <div className="grid gap-4 py-4">
+                  <div className="grid grid-cols-4 items-center gap-4">
+                    <Label htmlFor="name" className="text-right">Name</Label>
+                    <Input id="name" value={newUserName} onChange={(e) => setNewUserName(e.target.value)} className="col-span-3" />
+                  </div>
+                  <div className="grid grid-cols-4 items-center gap-4">
+                    <Label htmlFor="role-select" className="text-right">Role</Label>
+                    <Select value={newUserRole} onValueChange={(value) => setNewUserRole(value as UserRole)}>
+                      <SelectTrigger className="col-span-3" id="role-select">
+                        <SelectValue placeholder="Select role" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="Worker">Worker</SelectItem>
+                        <SelectItem value="Manager">Manager</SelectItem>
+                        <SelectItem value="Admin">Admin</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
                 </div>
-                <div className="grid grid-cols-4 items-center gap-4">
-                  <Label htmlFor="role" className="text-right">Role</Label>
-                  <select 
-                    id="role" 
-                    value={newUserRole} 
-                    onChange={(e) => setNewUserRole(e.target.value as 'Worker' | 'Admin')}
-                    className="col-span-3 block w-full rounded-md border-input bg-background px-3 py-2 text-sm shadow-sm focus:border-ring focus:ring-ring"
-                  >
-                    <option value="Worker">Worker</option>
-                    <option value="Admin">Admin</option>
-                  </select>
-                </div>
-              </div>
-              <DialogFooter>
-                <Button type="button" onClick={handleAddUser}>Add User</Button>
-              </DialogFooter>
-            </DialogContent>
-          </Dialog>
+                <DialogFooter>
+                  <Button type="button" onClick={handleAddUser}>Add User</Button>
+                </DialogFooter>
+              </DialogContent>
+            </Dialog>
 
-          <div className="rounded-md border mt-4">
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Name</TableHead>
-                  <TableHead>Role</TableHead>
-                  <TableHead className="text-right">Actions</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {users.map(user => (
-                  <TableRow key={user.id}>
-                    <TableCell>{user.name}</TableCell>
-                    <TableCell><span className={`px-2 py-1 text-xs rounded-full ${user.role === 'Admin' ? 'bg-primary/20 text-primary' : 'bg-secondary/20 text-secondary-foreground'}`}>{user.role}</span></TableCell>
-                    <TableCell className="text-right">
-                      <Button variant="ghost" size="sm" onClick={() => toast({description: `Edit action for ${user.name}`})}>Edit</Button>
-                      <Button variant="ghost" size="sm" className="text-destructive hover:text-destructive" onClick={() => {
-                        setUsers(users.filter(u => u.id !== user.id));
-                        toast({description: `${user.name} removed.`});
-                      }}>Remove</Button>
-                    </TableCell>
+            <div className="rounded-md border mt-4">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Name</TableHead>
+                    <TableHead>Role</TableHead>
+                    <TableHead className="text-right">Actions</TableHead>
                   </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          </div>
-        </CardContent>
-      </Card>
+                </TableHeader>
+                <TableBody>
+                  {users.map(user => (
+                    <TableRow key={user.id}>
+                      <TableCell>{user.name}</TableCell>
+                      <TableCell><span className={`px-2 py-1 text-xs rounded-full ${user.role === 'Admin' ? 'bg-primary/20 text-primary' : user.role === 'Manager' ? 'bg-accent/20 text-accent-foreground' : 'bg-secondary/20 text-secondary-foreground'}`}>{user.role}</span></TableCell>
+                      <TableCell className="text-right">
+                        <Button variant="ghost" size="sm" onClick={() => toast({description: `Edit action for ${user.name}`})}>Edit</Button>
+                        <Button variant="ghost" size="sm" className="text-destructive hover:text-destructive" onClick={() => {
+                          setUsers(users.filter(u => u.id !== user.id));
+                          toast({description: `${user.name} removed.`});
+                        }}>Remove</Button>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </div>
+          </CardContent>
+        </Card>
+      )}
 
       <Card className="shadow-lg">
         <CardHeader>

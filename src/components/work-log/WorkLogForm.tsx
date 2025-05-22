@@ -1,7 +1,7 @@
 
 "use client";
 
-import { useState, type FormEvent, useEffect } from 'react';
+import { useState, type FormEvent, useEffect, ChangeEvent } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -9,10 +9,11 @@ import { Textarea } from '@/components/ui/textarea';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Calendar } from '@/components/ui/calendar';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { CalendarIcon, Save } from 'lucide-react';
+import { CalendarIcon, Save, Paperclip, Image as ImageIcon } from 'lucide-react';
 import { format } from 'date-fns';
 import { useToast } from '@/hooks/use-toast';
 import type { WorkLogEntry } from '@/types';
+import Image from 'next/image';
 
 interface WorkLogFormProps {
   onSubmit: (entry: WorkLogEntry) => void;
@@ -26,10 +27,14 @@ export function WorkLogForm({ onSubmit, initialData }: WorkLogFormProps) {
   const [lengthStr, setLengthStr] = useState(initialData?.length?.toString() || '');
   const [widthStr, setWidthStr] = useState(initialData?.width?.toString() || '');
   const [thicknessStr, setThicknessStr] = useState(initialData?.thickness?.toString() || '');
-  const [quantityStr, setQuantityStr] = useState(initialData?.quantity?.toString() || ''); // Number of Pieces
+  const [quantityStr, setQuantityStr] = useState(initialData?.quantity?.toString() || '');
   
   const [unit, setUnit] = useState(initialData?.unit || '');
   const [notes, setNotes] = useState(initialData?.notes || '');
+  const [photoFile, setPhotoFile] = useState<File | null>(null);
+  const [photoPreviewUrl, setPhotoPreviewUrl] = useState<string | null>(initialData?.photoUrl || null);
+  const [photoFileName, setPhotoFileName] = useState<string | undefined>(initialData?.photoFileName);
+
   const { toast } = useToast();
 
   useEffect(() => {
@@ -42,8 +47,24 @@ export function WorkLogForm({ onSubmit, initialData }: WorkLogFormProps) {
       const calculatedValue = (L * W * T * Q) / 144;
       setUnit(`${calculatedValue.toFixed(2)} BF`);
     }
-    // If inputs are not valid for calculation, unit remains as is (allowing manual input or previous value)
   }, [lengthStr, widthStr, thicknessStr, quantityStr]);
+
+  const handlePhotoChange = (event: ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (file) {
+      setPhotoFile(file);
+      setPhotoFileName(file.name);
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setPhotoPreviewUrl(reader.result as string);
+      };
+      reader.readAsDataURL(file);
+    } else {
+      setPhotoFile(null);
+      setPhotoPreviewUrl(null);
+      setPhotoFileName(undefined);
+    }
+  };
 
   const handleSubmit = (event: FormEvent) => {
     event.preventDefault();
@@ -72,6 +93,8 @@ export function WorkLogForm({ onSubmit, initialData }: WorkLogFormProps) {
       quantity: numQuantity,
       unit,
       notes,
+      photoUrl: photoPreviewUrl || undefined, // For now, using preview URL. In real app, this would be from storage.
+      photoFileName: photoFileName,
     };
     onSubmit(newEntry);
     toast({
@@ -188,6 +211,23 @@ export function WorkLogForm({ onSubmit, initialData }: WorkLogFormProps) {
             <p className="text-xs text-muted-foreground mt-1">
               Unit is auto-calculated as Board Feet (BF) if L, W, T, and Pieces are valid. Otherwise, enter manually.
             </p>
+          </div>
+
+          <div>
+            <Label htmlFor="photo">Attach Photo (Optional)</Label>
+            <Input
+              id="photo"
+              type="file"
+              accept="image/*"
+              onChange={handlePhotoChange}
+              className="mt-1"
+            />
+            {photoFileName && <p className="text-xs text-muted-foreground mt-1">Selected: {photoFileName}</p>}
+            {photoPreviewUrl && (
+              <div className="mt-2 relative w-32 h-32 border rounded-md overflow-hidden">
+                <Image src={photoPreviewUrl} alt="Photo preview" layout="fill" objectFit="cover" data-ai-hint="work log image" />
+              </div>
+            )}
           </div>
 
           <div>
